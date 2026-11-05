@@ -1,0 +1,13 @@
+package com.recallrelay.employee;
+
+public enum EmployeeRole {
+    HEAD_OFFICE_ADMIN,
+    HEAD_OFFICE_MANAGER,
+    HEAD_OFFICE_STAFF,
+    CALL_CENTER_AGENT,
+    SERVICE_MANAGER,
+    APPOINTMENT_COORDINATOR,
+    PARTS_SPECIALIST,
+    SERVICE_ADVISOR,
+    TECHNICIAN
+}

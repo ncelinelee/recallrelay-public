@@ -1,0 +1,4 @@
+case_id,temporal_relation,expected_contradiction,actual_contradiction,expected_behavior_met,json_valid
+CC1,INTERACTION_AFTER_PART_RECORD,True,True,True,True
+CC2,INTERACTION_BEFORE_PART_RECORD,False,False,True,True
+CC3,INTERACTION_AFTER_PART_RECORD,False,False,True,True

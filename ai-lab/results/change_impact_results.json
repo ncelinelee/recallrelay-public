@@ -1,0 +1,28 @@
+{
+  "CI1_delay": {
+    "change_summary": "The confirmed ETA moved from 2026-09-02 to 2026-09-06.",
+    "affected_customer_expectation": "The previous commitment that the part should arrive before Sep 3 is no longer supported by the confirmed ETA.",
+    "affected_appointment": true,
+    "workflow_impact": "The part is now expected after the 2026-09-03 appointment, affecting the appointment workflow that depends on its arrival.",
+    "evidence_facts": [
+      "Customer need: 2026-09-03.",
+      "Appointment: 2026-09-03.",
+      "Previous customer commitment: The part should arrive before Sep 3.",
+      "ETA changed from 2026-09-02 to 2026-09-06.",
+      "Rule-based risk changed from WATCH to AT_RISK."
+    ]
+  },
+  "CI2_improvement": {
+    "change_summary": "The confirmed ETA moved one day earlier, from 2026-09-02 to 2026-09-01.",
+    "affected_customer_expectation": "The expectation that the part should arrive before Sep 3 remains supported, now with an additional day before the customer need and appointment.",
+    "affected_appointment": false,
+    "workflow_impact": "No appointment disruption is indicated; the updated ETA remains before the 2026-09-03 appointment.",
+    "evidence_facts": [
+      "Previous customer commitment: The part should arrive before Sep 3.",
+      "ETA changed from 2026-09-02 to 2026-09-01.",
+      "Customer need is 2026-09-03.",
+      "Appointment is 2026-09-03.",
+      "Rule-based risk remains WATCH before and after the change."
+    ]
+  }
+}

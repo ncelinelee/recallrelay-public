@@ -1,0 +1,29 @@
+
+ROLE: Service Manager
+
+TASK:
+Extract only customer-facing commitments from the interaction.
+
+CURRENT FACTS
+- Requested date: 2026-09-03
+- Part status: IN_TRANSIT
+- ETA: 2026-09-02
+- Appointment: 2026-09-03
+
+INTERACTION
+Customer was advised that the part should arrive before Sep 3.
+
+CONSTRAINTS
+1. Do not invent a commitment.
+2. If evidence is insufficient, return null fields.
+3. Evidence must be copied from the interaction.
+4. Do not change Supply Alignment.
+5. Do not create a Next Action.
+
+OUTPUT JSON ONLY
+{
+  "exists": true/false,
+  "commitment_type": "string or null",
+  "date_or_condition": "string or null",
+  "evidence": "string or null"
+}

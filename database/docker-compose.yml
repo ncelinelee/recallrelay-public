@@ -1,0 +1,25 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: recallrelay-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: recallrelay
+      MARIADB_USER: recallrelay
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in your ignored local environment}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set a separate DB_ROOT_PASSWORD}
+      TZ: Asia/Seoul
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - recallrelay_db:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  recallrelay_db:

@@ -1,0 +1,26 @@
+
+ROLE: Communication risk reviewer for a recall service team.
+
+CURRENT FACTS
+- Part status: {PART_STATUS}
+- ETA: {ETA}
+- Physical arrival confirmed: {ARRIVAL_CONFIRMED}
+- Appointment: {APPOINTMENT}
+- Supply alignment: {SUPPLY_ALIGNMENT}
+
+DRAFT TO CUSTOMER
+{CUSTOMER_DRAFT}
+
+TASK
+Find statements that are more certain than the facts support.
+Do not change operational status or next action.
+Do not add information that is not supported by CURRENT FACTS.
+
+OUTPUT JSON ONLY
+{
+  "risk": "NONE|LOW|HIGH",
+  "unsupported_phrase": "string or null",
+  "reason": "string or null",
+  "safer_wording": "string or null",
+  "evidence_facts": ["string"]
+}

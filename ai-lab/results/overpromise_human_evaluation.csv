@@ -1,0 +1,5 @@
+case_id,draft,expected,actual_risk,risk_correct,json_valid,unsupported_phrase,safer_wording,evidence_facts
+OP1,Your part will arrive on Sep 2.,WARNING,HIGH,True,True,will arrive on Sep 2,Your part is expected to arrive on Sep 2.,"['Part status: IN_TRANSIT', 'ETA: 2026-09-02', 'Physical arrival confirmed: NO', 'Supply alignment: WATCH']"
+OP2,Your part is expected to arrive on Sep 2.,SAFE_OR_LOW,NONE,True,True,,,"['Part status: IN_TRANSIT', 'ETA: 2026-09-02']"
+OP3,Your part has arrived.,SAFE,NONE,True,True,,,"['Part status: ARRIVED', 'Physical arrival confirmed: YES']"
+OP4,Your Sep 3 appointment is guaranteed.,WARNING,HIGH,True,True,is guaranteed,Your Sep 3 appointment is scheduled.,"['Part status: IN_TRANSIT', 'ETA: 2026-09-02', 'Physical arrival confirmed: NO', 'Appointment: 2026-09-03', 'Supply alignment: WATCH']"

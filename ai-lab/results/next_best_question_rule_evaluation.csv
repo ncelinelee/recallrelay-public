@@ -1,0 +1,4 @@
+case_id,expected_missing,actual_missing,expected_behavior_met
+NBQ1,['LATEST_PART_ETA'],['LATEST_PART_ETA'],True
+NBQ2,['CUSTOMER_REQUESTED_DATE'],['CUSTOMER_REQUESTED_DATE'],True
+NBQ3,[],[],True

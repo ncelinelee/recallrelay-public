@@ -1,0 +1,9 @@
+-- Copy to ignored local-employee-setup.sql and insert a locally generated BCrypt hash.
+-- The empty example does not activate any account.
+USE recallrelay;
+SET @local_bcrypt_hash = '';
+UPDATE employees
+SET password_hash = @local_bcrypt_hash, active = TRUE, must_change_password = TRUE
+WHERE organization_id = 1 AND employee_login_id = 'jlee'
+  AND CHAR_LENGTH(@local_bcrypt_hash) = 60
+  AND LEFT(@local_bcrypt_hash, 4) IN ('$2a$', '$2b$', '$2y$');

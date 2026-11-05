@@ -1,0 +1,2260 @@
+openapi: 3.0.3
+info:
+  title: RecallRelay REST API
+  version: 1.5.0
+  description: |
+    Organization-based Automotive Recall Coordination API.
+    Data scope is enforced by JWT claims: organizationId, dealershipId, and role.
+    Case Status, Part Readiness, Recall Outreach Eligibility, Supply Alignment, and Next Action are system-calculated according to RecallRelay v1.5 business rules. Future LLM features may summarize context but must not override these deterministic workflow values.
+
+tags:
+  - name: Auth
+  - name: Registration
+  - name: Dashboard
+  - name: Search
+  - name: Dealership
+  - name: Employee
+  - name: Customer
+  - name: Campaign
+  - name: Case
+  - name: Part
+  - name: Appointment
+  - name: Activity
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Employee login
+      description: Login with Organization Code, Employee ID, and password.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/password:
+    patch:
+      tags: [Auth]
+      summary: Change password
+      description: Changes the authenticated employee password. Temporary-password users must complete this before accessing business screens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/password-reset/request:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Reset request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetRequestResponse'
+
+  /auth/password-reset/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm password reset
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+      responses:
+        '200':
+          description: Password reset completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationActionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/registrations/employee/start:
+    post:
+      tags: [Registration]
+      summary: Start employee self-registration
+      description: Validates Organization/company-email domain and sends a 6-digit verification code. The account is not created yet.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRegistrationStartRequest'
+      responses:
+        '200':
+          description: Verification code sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationActionResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /auth/registrations/employee/verify:
+    post:
+      tags: [Registration]
+      summary: Verify employee company email
+      description: Valid code moves the request to PENDING_MANAGER_APPROVAL.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRegistrationVerifyRequest'
+      responses:
+        '200':
+          description: Email verified and approval pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationActionResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /auth/registrations/manager:
+    post:
+      tags: [Registration]
+      summary: Self-register a manager using company-issued one-time credentials
+      description: Service Manager requires dealershipId. Head Office Manager does not. Employee ID + one-time code must match an unused company-issued manager activation record.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManagerRegistrationRequest'
+      responses:
+        '200':
+          description: Manager account created and automatically approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationActionResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /registrations/pending:
+    get:
+      tags: [Registration]
+      summary: List sign-ups waiting for manager approval
+      description: Service Manager sees requests for the assigned dealership. Head Office Manager sees Head Office requests. Head Office Admin may review organization-wide requests.
+      responses:
+        '200':
+          description: Pending registration requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingRegistrationResponse'
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /registrations/{registrationId}/approve:
+    post:
+      tags: [Registration]
+      summary: Approve a pending employee registration
+      parameters:
+        - in: path
+          name: registrationId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Employee account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationActionResponse'
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /registrations/{registrationId}/reject:
+    post:
+      tags: [Registration]
+      summary: Reject a pending employee registration
+      parameters:
+        - in: path
+          name: registrationId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Registration rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationActionResponse'
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get role-based dashboard
+      description: Returns the dashboard for the authenticated role. Case-based work queue items include one calculated nextAction.
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Employee ID, name, email, or role search.
+        - in: query
+          name: dealershipId
+          schema:
+            type: integer
+            format: int64
+          description: Head Office Admin may filter within the authenticated Organization. Dealership roles are restricted to their assigned dealership.
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/CaseStatus'
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /search:
+    get:
+      tags: [Search]
+      summary: Universal search
+      description: Search Customer No., Customer Name, VIN, Recall No., or Part No. within the authenticated data scope.
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dealerships:
+    get:
+      tags: [Dealership]
+      summary: List dealerships
+      description: Head Office Admin receives Organization dealerships. Dealership roles remain restricted by assigned scope.
+      parameters:
+        - in: query
+          name: active
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Dealership list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dealership'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /employees:
+    get:
+      tags: [Employee]
+      summary: List employees
+      description: Head Office Admin can view Organization employees. Service Manager is limited to the assigned dealership.
+      parameters:
+        - in: query
+          name: dealershipId
+          schema:
+            type: integer
+            format: int64
+        - in: query
+          name: role
+          schema:
+            $ref: '#/components/schemas/EmployeeRole'
+        - in: query
+          name: active
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Employee list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Employee]
+      summary: Create employee account
+      description: |
+        Allowed: Head Office Admin and Service Manager.
+        Service Manager is restricted to the assigned dealership and cannot create a HEAD_OFFICE_ADMIN account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreateRequest'
+      responses:
+        '201':
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /employees/{employeeId}:
+    patch:
+      tags: [Employee]
+      summary: Update employee name, email, role, dealership, or active status
+      description: |
+        Allowed: Head Office Admin and Service Manager.
+        Service Manager may manage only employees in the assigned dealership and cannot assign or manage HEAD_OFFICE_ADMIN.
+        Name and Company Email are editable within scope. Inactivation preserves historical Case and Interaction references.
+      parameters:
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeePatchRequest'
+      responses:
+        '200':
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /customers:
+    post:
+      tags: [Customer]
+      summary: Create new-to-dealership customer and vehicle
+      description: |
+        Allowed: Appointment Coordinator, Service Advisor, and Service Manager.
+        Creates the minimum Customer and Vehicle profile in the assigned dealership context.
+        The backend matches the VIN against applicable Recall Targets and creates or links one Recall Case per matched campaign.
+        Direct POST /cases is intentionally not provided.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreateRequest'
+      responses:
+        '201':
+          description: Customer and vehicle created; matched cases returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /campaigns:
+    get:
+      tags: [Campaign]
+      summary: List recall campaigns
+      description: Head Office Admin can query the Organization. Dealership users receive only campaigns applicable to their scope.
+      parameters:
+        - in: query
+          name: recallNo
+          schema:
+            type: string
+        - in: query
+          name: campaignStatus
+          schema:
+            type: string
+        - in: query
+          name: dealershipId
+          schema:
+            type: integer
+            format: int64
+          description: Head Office Admin filter. Service Manager is forced to assigned dealership.
+        - in: query
+          name: severity
+          schema:
+            $ref: '#/components/schemas/RecallSeverity'
+      responses:
+        '200':
+          description: Campaign list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CampaignSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Campaign]
+      summary: Create recall campaign
+      description: Head Office Admin only. Recall No. is immutable after creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignCreateRequest'
+      responses:
+        '201':
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /campaigns/{campaignId}:
+    get:
+      tags: [Campaign]
+      summary: Get campaign detail
+      parameters:
+        - $ref: '#/components/parameters/CampaignId'
+      responses:
+        '200':
+          description: Campaign detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Campaign]
+      summary: Update campaign information and severity
+      description: Head Office Admin or Service Manager may update an existing campaign within authorized scope. recallNo is read-only after creation. New campaign creation remains Head Office Admin only.
+      parameters:
+        - $ref: '#/components/parameters/CampaignId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignPatchRequest'
+      responses:
+        '200':
+          description: Campaign updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /campaigns/{campaignId}/priority:
+    patch:
+      tags: [Campaign]
+      summary: Update dealership operational priority
+      description: Service Manager or Head Office Admin. Service Manager is restricted to the assigned dealership. P1/P2/P3 is dealership-specific and separate from Recall Severity.
+      parameters:
+        - $ref: '#/components/parameters/CampaignId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationalPriorityPatchRequest'
+      responses:
+        '200':
+          description: Operational priority updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealershipCampaignPriority'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /campaigns/{campaignId}/targets:
+    get:
+      tags: [Campaign]
+      summary: List recall target VINs
+      parameters:
+        - $ref: '#/components/parameters/CampaignId'
+      responses:
+        '200':
+          description: Recall target list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecallTarget'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Campaign]
+      summary: Add recall target VIN
+      description: Head Office Admin or Service Manager for an existing campaign within authorized scope. VIN must be 17 characters and unique within the campaign. New campaign creation remains Head Office Admin only.
+      parameters:
+        - $ref: '#/components/parameters/CampaignId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecallTargetCreateRequest'
+      responses:
+        '201':
+          description: Recall target created and vehicle/case match processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecallTarget'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /campaigns/{campaignId}/targets/{targetId}:
+    delete:
+      tags: [Campaign]
+      summary: Delete recall target VIN
+      description: Head Office Admin or Service Manager for an existing campaign within authorized scope.
+      parameters:
+        - $ref: '#/components/parameters/CampaignId'
+        - $ref: '#/components/parameters/TargetId'
+      responses:
+        '204':
+          description: Recall target deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /cases:
+    get:
+      tags: [Case]
+      summary: List recall cases
+      description: Head Office Admin can query Organization scope. Dealership roles are restricted to assigned dealership.
+      parameters:
+        - in: query
+          name: dealershipId
+          schema:
+            type: integer
+            format: int64
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/CaseStatus'
+        - in: query
+          name: operationalPriority
+          schema:
+            $ref: '#/components/schemas/OperationalPriority'
+        - in: query
+          name: recallNo
+          schema:
+            type: string
+        - in: query
+          name: vin
+          schema:
+            type: string
+            minLength: 17
+            maxLength: 17
+        - in: query
+          name: nextActionType
+          schema:
+            $ref: '#/components/schemas/NextActionType'
+      responses:
+        '200':
+          description: Recall case list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CaseSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /cases/{caseId}:
+    get:
+      tags: [Case]
+      summary: Get integrated recall case detail
+      description: Returns Customer, Vehicle, Campaign, Parts, Current Appointment, Service Progress, Eligibility, Interaction timeline, and calculated nextAction.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Recall case detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Case]
+      summary: Update eligibility flags or authorize case cancellation
+      description: |
+        Service Manager: ownershipValid, serviceAreaValid, phoneValid, cancelCase.
+        Appointment Coordinator: ownershipValid, serviceAreaValid, phoneValid.
+        Case Status itself is not writable. cancelCase=true is the only manual terminal transition and is Service Manager only.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CasePatchRequest'
+      responses:
+        '200':
+          description: Case updated; calculated fields re-evaluated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /cases/{caseId}/parts:
+    post:
+      tags: [Part]
+      summary: Add recall part request to case
+      description: Parts Specialist or Service Manager. Initial status is REQUESTED. Duplicate partNo within the same case is rejected.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartCreateRequest'
+      responses:
+        '201':
+          description: Part request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Part'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /parts:
+    get:
+      tags: [Part]
+      summary: List recall parts
+      description: Parts Specialist and Service Manager may edit via the Part endpoint within dealership scope. Coordinator and Advisor use read-only management views.
+      parameters:
+        - in: query
+          name: partNo
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/PartStatus'
+        - in: query
+          name: etaFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: etaTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: recallNo
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Part queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PartQueueItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /parts/{partId}:
+    patch:
+      tags: [Part]
+      summary: Update part status, order information, or ETA
+      description: Parts Specialist or Service Manager within dealership scope. Other roles are read-only for these daily processing fields.
+      parameters:
+        - $ref: '#/components/parameters/PartId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartPatchRequest'
+      responses:
+        '200':
+          description: Part updated; Part Readiness and Next Action re-evaluated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Part'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments:
+    get:
+      tags: [Appointment]
+      summary: List appointments
+      parameters:
+        - in: query
+          name: scheduledFrom
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: scheduledTo
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: technicianId
+          schema:
+            type: integer
+            format: int64
+        - in: query
+          name: appointmentStatus
+          schema:
+            $ref: '#/components/schemas/AppointmentStatus'
+      responses:
+        '200':
+          description: Appointment list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /appointments/availability:
+    get:
+      tags: [Appointment]
+      summary: Check technician availability
+      description: Used before appointment creation or reassignment.
+      parameters:
+        - in: query
+          name: scheduledAt
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: excludeAppointmentId
+          schema:
+            type: integer
+            format: int64
+          description: Optional current appointment to exclude during rescheduling.
+      responses:
+        '200':
+          description: Technician availability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /cases/{caseId}/appointments:
+    post:
+      tags: [Appointment]
+      summary: Create current appointment
+      description: |
+        Allowed: Appointment Coordinator, Service Advisor, and Service Manager.
+        A Recall Case can have at most one current appointment row. If one already exists, returns 409.
+        Part Readiness = NOT_READY produces a warning but does not block appointment creation.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreateRequest'
+      responses:
+        '201':
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentMutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /appointments/{appointmentId}:
+    get:
+      tags: [Appointment]
+      summary: Get current appointment detail
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      responses:
+        '200':
+          description: Appointment detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Appointment]
+      summary: Reschedule/cancel appointment or update technician service status
+      description: |
+        Appointment Coordinator / Service Advisor may update scheduledAt, appointmentStatus, technicianId, and Additional Service / Handoff fields, but cannot write serviceStatus.
+        Assigned Technician may update only serviceStatus for the assigned job.
+        Service Manager may update both appointment workflow fields and serviceStatus within the assigned dealership.
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/AppointmentSchedulePatchRequest'
+                - $ref: '#/components/schemas/ServiceStatusPatchRequest'
+      responses:
+        '200':
+          description: Appointment or service status updated; Case Status and Next Action re-evaluated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentMutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /cases/{caseId}/activities:
+    get:
+      tags: [Activity]
+      summary: Get interaction and memo timeline
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Case activity timeline in chronological order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Activity]
+      summary: Create contact, callback follow-up, or internal memo activity
+      description: |
+        Coordinator / Advisor / Parts / Service Manager may use all interaction fields within authorized Case scope.
+        Technician may create an activity only for an assigned job. Head Office access remains organization-scoped.
+        A valid CONTACT activity can move NEW to CUSTOMER_CONTACTED.
+        To complete an open callback, send completesCallbackActivityId; backend writes callbackCompletedAt on the referenced activity using the new activity createdAt.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityCreateRequest'
+      responses:
+        '201':
+          description: Activity created; eligibility, Case Status, callback state, and Next Action re-evaluated where applicable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityMutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT claims include organizationId, dealershipId, and role. Backend enforces Organization, Dealership, Role, and field-level scope.
+
+  parameters:
+    EmployeeId:
+      name: employeeId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    CampaignId:
+      name: campaignId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    TargetId:
+      name: targetId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    CaseId:
+      name: caseId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    PartId:
+      name: partId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    AppointmentId:
+      name: appointmentId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  responses:
+    BadRequest:
+      description: Invalid request or validation failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing, invalid, or expired authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Authenticated but Organization, Dealership, Role, or field-level access is denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found within the authenticated scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Unique constraint, current appointment, state transition, or duplicate-link conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    EmployeeRole:
+      type: string
+      enum:
+        - HEAD_OFFICE_ADMIN
+        - SERVICE_MANAGER
+        - APPOINTMENT_COORDINATOR
+        - PARTS_SPECIALIST
+        - SERVICE_ADVISOR
+        - TECHNICIAN
+
+    RecallSeverity:
+      type: string
+      enum: [CRITICAL, HIGH, MEDIUM, LOW]
+
+    OperationalPriority:
+      type: string
+      enum: [P1, P2, P3]
+      description: Dealership operational priority. P2 is the default.
+
+    CaseStatus:
+      type: string
+      readOnly: true
+      enum:
+        - NEW
+        - CUSTOMER_CONTACTED
+        - APPOINTMENT_SCHEDULED
+        - SERVICE_COMPLETED
+        - CANCELLED
+      description: System-managed workflow status. Client cannot set this value directly.
+
+    PartStatus:
+      type: string
+      enum: [REQUESTED, ORDERED, BACKORDERED, IN_TRANSIT, ARRIVED]
+
+    AppointmentStatus:
+      type: string
+      enum: [SCHEDULED, CANCELLED]
+
+    ServiceStatus:
+      type: string
+      enum: [SCHEDULED, CHECKED_IN, IN_PROGRESS, WAITING, COMPLETED]
+
+    PartReadiness:
+      type: string
+      readOnly: true
+      enum: [READY, NOT_READY]
+      description: READY only when at least one linked part exists and every linked part status is ARRIVED.
+
+    SupplyAlignment:
+      type: string
+      readOnly: true
+      enum: [ALIGNED, WATCH, AT_RISK]
+      description: Deterministic comparison of customer requested service timing against physical part status and ETA. This value is not decided by an LLM.
+
+    NextActionType:
+      type: string
+      readOnly: true
+      enum:
+        - REVIEW_APPOINTMENT
+        - CALLBACK_CUSTOMER
+        - CONTACT_CUSTOMER
+        - CHECK_PART_STATUS
+
+    NextAction:
+      type: object
+      nullable: true
+      readOnly: true
+      required: [type, reason]
+      properties:
+        type:
+          $ref: '#/components/schemas/NextActionType'
+        reason:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+      description: Exactly one highest-priority next action is returned when applicable. Priority order is REVIEW_APPOINTMENT > CALLBACK_CUSTOMER > CONTACT_CUSTOMER > CHECK_PART_STATUS.
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: FORBIDDEN
+        message:
+          type: string
+        field:
+          type: string
+          nullable: true
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [organizationCode, employeeId, password]
+      properties:
+        organizationCode:
+          type: string
+          maxLength: 50
+        employeeId:
+          type: string
+          maxLength: 80
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      required: [accessToken, tokenType, employee]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 3600
+        mustChangePassword:
+          type: boolean
+        employee:
+          $ref: '#/components/schemas/Employee'
+
+    PasswordChangeRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+
+    PasswordResetRequest:
+      type: object
+      required: [organizationCode, companyEmail]
+      properties:
+        organizationCode:
+          type: string
+        companyEmail:
+          type: string
+          format: email
+
+    PasswordResetConfirmRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+
+    EmployeeRegistrationStartRequest:
+      type: object
+      required: [organizationCode, employeeId, employeeName, companyEmail, phone, department, requestedRole, password]
+      properties:
+        organizationCode: { type: string }
+        employeeId: { type: string, maxLength: 80 }
+        employeeName: { type: string, maxLength: 120 }
+        companyEmail: { type: string, format: email }
+        phone: { type: string, maxLength: 40 }
+        dealershipId: { type: integer, format: int64, nullable: true }
+        department:
+          type: string
+          enum: [SERVICE, PARTS, HEAD_OFFICE]
+        requestedRole:
+          type: string
+          enum: [SERVICE_ADVISOR, APPOINTMENT_COORDINATOR, TECHNICIAN, PARTS_SPECIALIST, HEAD_OFFICE_STAFF, CALL_CENTER_AGENT]
+        password: { type: string, format: password, minLength: 8 }
+
+    EmployeeRegistrationVerifyRequest:
+      type: object
+      required: [organizationCode, employeeId, verificationCode]
+      properties:
+        organizationCode: { type: string }
+        employeeId: { type: string }
+        verificationCode: { type: string, pattern: '^[0-9]{6}$' }
+
+    ManagerRegistrationRequest:
+      type: object
+      required: [organizationCode, employeeId, employeeName, companyEmail, phone, managerRole, oneTimeCode, password]
+      properties:
+        organizationCode: { type: string }
+        employeeId: { type: string }
+        employeeName: { type: string }
+        companyEmail: { type: string, format: email }
+        phone: { type: string }
+        managerRole:
+          type: string
+          enum: [SERVICE_MANAGER, HEAD_OFFICE_MANAGER]
+        dealershipId: { type: integer, format: int64, nullable: true }
+        oneTimeCode: { type: string, format: password }
+        password: { type: string, format: password, minLength: 8 }
+
+    RegistrationActionResponse:
+      type: object
+      properties:
+        message: { type: string }
+        status: { type: string }
+        devVerificationCode:
+          type: string
+          nullable: true
+          description: Returned only when MAIL_DEV_EXPOSE_SECRETS=true for local development.
+
+    PendingRegistrationResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        employeeId: { type: string }
+        employeeName: { type: string }
+        companyEmail: { type: string, format: email }
+        phone: { type: string }
+        dealershipId: { type: integer, format: int64, nullable: true }
+        department: { type: string, enum: [SERVICE, PARTS, HEAD_OFFICE] }
+        requestedRole: { type: string }
+        requestedAt: { type: string, format: date-time }
+
+    PasswordResetRequestResponse:
+      type: object
+      properties:
+        message: { type: string }
+        devResetUrl:
+          type: string
+          nullable: true
+          description: Returned only when MAIL_DEV_EXPOSE_SECRETS=true for local development.
+
+    OrganizationRef:
+      type: object
+      required: [id, organizationCode, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        organizationCode:
+          type: string
+        name:
+          type: string
+
+    Dealership:
+      type: object
+      required: [id, organizationId, name, active]
+      properties:
+        id:
+          type: integer
+          format: int64
+        organizationId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        active:
+          type: boolean
+
+    Employee:
+      type: object
+      required: [id, organizationId, employeeLoginId, employeeName, companyEmail, role, active, mustChangePassword]
+      properties:
+        id:
+          type: integer
+          format: int64
+        organizationId:
+          type: integer
+          format: int64
+        dealershipId:
+          type: integer
+          format: int64
+          nullable: true
+        employeeLoginId:
+          type: string
+        employeeName:
+          type: string
+          maxLength: 120
+        companyEmail:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        active:
+          type: boolean
+        mustChangePassword:
+          type: boolean
+
+    EmployeeCreateRequest:
+      type: object
+      required: [employeeLoginId, employeeName, companyEmail, role, temporaryPassword]
+      properties:
+        employeeLoginId:
+          type: string
+          maxLength: 80
+        employeeName:
+          type: string
+          maxLength: 120
+        companyEmail:
+          type: string
+          format: email
+          maxLength: 150
+        dealershipId:
+          type: integer
+          format: int64
+          nullable: true
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        temporaryPassword:
+          type: string
+          format: password
+          minLength: 8
+
+    EmployeePatchRequest:
+      type: object
+      required: [employeeName, companyEmail, role, active]
+      properties:
+        employeeName:
+          type: string
+          maxLength: 120
+        companyEmail:
+          type: string
+          format: email
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        dealershipId:
+          type: integer
+          format: int64
+          nullable: true
+        active:
+          type: boolean
+
+    Customer:
+      type: object
+      required: [id, organizationId, customerNo, customerName, phoneNumber]
+      properties:
+        id:
+          type: integer
+          format: int64
+        organizationId:
+          type: integer
+          format: int64
+        customerNo:
+          type: string
+        customerName:
+          type: string
+        phoneNumber:
+          type: string
+
+    Vehicle:
+      type: object
+      required: [id, organizationId, customerId, vin]
+      properties:
+        id:
+          type: integer
+          format: int64
+        organizationId:
+          type: integer
+          format: int64
+        customerId:
+          type: integer
+          format: int64
+        vin:
+          type: string
+          minLength: 17
+          maxLength: 17
+
+    CustomerCreateRequest:
+      type: object
+      required: [customerName, phoneNumber, vin]
+      properties:
+        customerName:
+          type: string
+          maxLength: 150
+        phoneNumber:
+          type: string
+          maxLength: 50
+        vin:
+          type: string
+          minLength: 17
+          maxLength: 17
+
+    CustomerCreateResponse:
+      type: object
+      required: [customer, vehicle, matchedCampaignCases]
+      properties:
+        customer:
+          $ref: '#/components/schemas/Customer'
+        vehicle:
+          $ref: '#/components/schemas/Vehicle'
+        matchedCampaignCases:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaseSummary'
+
+    CampaignSummary:
+      type: object
+      required: [id, recallNo, campaignType, campaignStatus, severity]
+      properties:
+        id:
+          type: integer
+          format: int64
+        recallNo:
+          type: string
+        campaignType:
+          type: string
+        applicableVehicle:
+          type: string
+          nullable: true
+        campaignStatus:
+          type: string
+        severity:
+          $ref: '#/components/schemas/RecallSeverity'
+        safetyImpact:
+          type: string
+          nullable: true
+        operationalPriority:
+          allOf:
+            - $ref: '#/components/schemas/OperationalPriority'
+          nullable: true
+          description: Present when a dealership context is resolved.
+
+    CampaignDetail:
+      allOf:
+        - $ref: '#/components/schemas/CampaignSummary'
+        - type: object
+          properties:
+            organizationId:
+              type: integer
+              format: int64
+            description:
+              type: string
+              nullable: true
+            campaignDate:
+              type: string
+              format: date
+              nullable: true
+            dealershipPriorities:
+              type: array
+              items:
+                $ref: '#/components/schemas/DealershipCampaignPriority'
+
+    CampaignCreateRequest:
+      type: object
+      required: [recallNo, campaignType, campaignStatus, severity]
+      properties:
+        recallNo:
+          type: string
+          maxLength: 80
+        campaignType:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+        applicableVehicle:
+          type: string
+          maxLength: 255
+        campaignDate:
+          type: string
+          format: date
+        campaignStatus:
+          type: string
+          maxLength: 30
+        severity:
+          $ref: '#/components/schemas/RecallSeverity'
+        safetyImpact:
+          type: string
+
+    CampaignPatchRequest:
+      type: object
+      minProperties: 1
+      description: recallNo is intentionally not writable after creation.
+      properties:
+        campaignType:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+        applicableVehicle:
+          type: string
+          maxLength: 255
+        campaignDate:
+          type: string
+          format: date
+        campaignStatus:
+          type: string
+          maxLength: 30
+        severity:
+          $ref: '#/components/schemas/RecallSeverity'
+        safetyImpact:
+          type: string
+
+    OperationalPriorityPatchRequest:
+      type: object
+      required: [operationalPriority]
+      properties:
+        operationalPriority:
+          $ref: '#/components/schemas/OperationalPriority'
+
+    DealershipCampaignPriority:
+      type: object
+      required: [dealershipId, campaignId, operationalPriority, updatedAt]
+      properties:
+        dealershipId:
+          type: integer
+          format: int64
+        campaignId:
+          type: integer
+          format: int64
+        operationalPriority:
+          $ref: '#/components/schemas/OperationalPriority'
+        updatedAt:
+          type: string
+          format: date-time
+
+    RecallTargetCreateRequest:
+      type: object
+      required: [vin]
+      properties:
+        vin:
+          type: string
+          minLength: 17
+          maxLength: 17
+
+    RecallTarget:
+      type: object
+      required: [id, campaignId, vin, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        campaignId:
+          type: integer
+          format: int64
+        vin:
+          type: string
+          minLength: 17
+          maxLength: 17
+        matchedVehicleId:
+          type: integer
+          format: int64
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Eligibility:
+      type: object
+      required: [ownershipValid, serviceAreaValid, phoneValid, recallOutreachEligibility]
+      properties:
+        ownershipValid:
+          type: boolean
+        serviceAreaValid:
+          type: boolean
+        phoneValid:
+          type: boolean
+        recallOutreachEligibility:
+          type: boolean
+          readOnly: true
+          description: Calculated as ownershipValid AND serviceAreaValid AND phoneValid.
+
+    CasePatchRequest:
+      type: object
+      minProperties: 1
+      properties:
+        ownershipValid:
+          type: boolean
+        serviceAreaValid:
+          type: boolean
+        phoneValid:
+          type: boolean
+        requestedServiceDate:
+          type: string
+          format: date
+          nullable: true
+          description: Customer requested service date captured during contact; distinct from the scheduled appointment date.
+        cancelCase:
+          type: boolean
+          description: Service Manager only. true performs authorized administrative case close and sets system-managed Case Status to CANCELLED.
+
+    CaseSummary:
+      type: object
+      required:
+        - id
+        - customerName
+        - vin
+        - recallNo
+        - caseStatus
+        - operationalPriority
+        - partReadiness
+      properties:
+        id:
+          type: integer
+          format: int64
+        organizationId:
+          type: integer
+          format: int64
+        dealershipId:
+          type: integer
+          format: int64
+          nullable: true
+        dealershipName:
+          type: string
+          nullable: true
+        customerNo:
+          type: string
+        customerName:
+          type: string
+        vin:
+          type: string
+          minLength: 17
+          maxLength: 17
+        recallNo:
+          type: string
+        severity:
+          $ref: '#/components/schemas/RecallSeverity'
+        operationalPriority:
+          $ref: '#/components/schemas/OperationalPriority'
+        caseStatus:
+          $ref: '#/components/schemas/CaseStatus'
+        partReadiness:
+          $ref: '#/components/schemas/PartReadiness'
+        requestedServiceDate:
+          type: string
+          format: date
+          nullable: true
+        supplyAlignment:
+          $ref: '#/components/schemas/SupplyAlignment'
+        nextAction:
+          $ref: '#/components/schemas/NextAction'
+
+    CaseDetail:
+      type: object
+      required:
+        - id
+        - organization
+        - campaign
+        - customer
+        - vehicle
+        - caseStatus
+        - eligibility
+        - partReadiness
+        - parts
+        - activities
+      properties:
+        id:
+          type: integer
+          format: int64
+        organization:
+          $ref: '#/components/schemas/OrganizationRef'
+        dealership:
+          allOf:
+            - $ref: '#/components/schemas/Dealership'
+          nullable: true
+        campaign:
+          $ref: '#/components/schemas/CampaignSummary'
+        customer:
+          $ref: '#/components/schemas/Customer'
+        vehicle:
+          $ref: '#/components/schemas/Vehicle'
+        caseStatus:
+          $ref: '#/components/schemas/CaseStatus'
+        operationalPriority:
+          $ref: '#/components/schemas/OperationalPriority'
+        eligibility:
+          $ref: '#/components/schemas/Eligibility'
+        partReadiness:
+          $ref: '#/components/schemas/PartReadiness'
+        requestedServiceDate:
+          type: string
+          format: date
+          nullable: true
+          description: Customer demand timing captured separately from the current appointment.
+        supplyAlignment:
+          $ref: '#/components/schemas/SupplyAlignment'
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Part'
+        appointment:
+          allOf:
+            - $ref: '#/components/schemas/Appointment'
+          nullable: true
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+        nextAction:
+          $ref: '#/components/schemas/NextAction'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PartCreateRequest:
+      type: object
+      required: [partNo, partName]
+      properties:
+        partNo:
+          type: string
+          maxLength: 100
+        partName:
+          type: string
+          maxLength: 150
+
+    PartPatchRequest:
+      type: object
+      minProperties: 1
+      properties:
+        status:
+          $ref: '#/components/schemas/PartStatus'
+        orderDate:
+          type: string
+          format: date
+          nullable: true
+        orderNo:
+          type: string
+          maxLength: 100
+          nullable: true
+        eta:
+          type: string
+          format: date
+          nullable: true
+
+    Part:
+      type: object
+      required: [id, caseId, partNo, partName, status, updatedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        caseId:
+          type: integer
+          format: int64
+        partNo:
+          type: string
+        partName:
+          type: string
+        status:
+          $ref: '#/components/schemas/PartStatus'
+        orderDate:
+          type: string
+          format: date
+          nullable: true
+        orderNo:
+          type: string
+          nullable: true
+        eta:
+          type: string
+          format: date
+          nullable: true
+        arrivedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    PartQueueItem:
+      type: object
+      required: [part, caseId, customerName, recallNo]
+      properties:
+        part:
+          $ref: '#/components/schemas/Part'
+        caseId:
+          type: integer
+          format: int64
+        customerName:
+          type: string
+        vin:
+          type: string
+        recallNo:
+          type: string
+        operationalPriority:
+          $ref: '#/components/schemas/OperationalPriority'
+        nextAction:
+          $ref: '#/components/schemas/NextAction'
+
+    AppointmentCreateRequest:
+      type: object
+      required: [scheduledAt, technicianId]
+      properties:
+        scheduledAt:
+          type: string
+          format: date-time
+        technicianId:
+          type: integer
+          format: int64
+        additionalServiceRequested:
+          type: boolean
+          default: false
+        serviceNote:
+          type: string
+          nullable: true
+        serviceAdvisorId:
+          type: integer
+          format: int64
+          nullable: true
+        handoffStatus:
+          type: string
+          nullable: true
+
+    AppointmentSchedulePatchRequest:
+      type: object
+      minProperties: 1
+      properties:
+        scheduledAt:
+          type: string
+          format: date-time
+        appointmentStatus:
+          $ref: '#/components/schemas/AppointmentStatus'
+        technicianId:
+          type: integer
+          format: int64
+          nullable: true
+        additionalServiceRequested:
+          type: boolean
+        serviceNote:
+          type: string
+          nullable: true
+        serviceAdvisorId:
+          type: integer
+          format: int64
+          nullable: true
+        handoffStatus:
+          type: string
+          nullable: true
+
+    ServiceStatusPatchRequest:
+      type: object
+      required: [serviceStatus]
+      additionalProperties: false
+      properties:
+        serviceStatus:
+          $ref: '#/components/schemas/ServiceStatus'
+
+    Appointment:
+      type: object
+      required:
+        - id
+        - caseId
+        - scheduledAt
+        - appointmentStatus
+        - serviceStatus
+        - additionalServiceRequested
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+        caseId:
+          type: integer
+          format: int64
+        scheduledAt:
+          type: string
+          format: date-time
+        appointmentStatus:
+          $ref: '#/components/schemas/AppointmentStatus'
+        technicianId:
+          type: integer
+          format: int64
+          nullable: true
+        technicianName:
+          type: string
+          nullable: true
+        serviceStatus:
+          $ref: '#/components/schemas/ServiceStatus'
+        additionalServiceRequested:
+          type: boolean
+        serviceNote:
+          type: string
+          nullable: true
+        serviceAdvisorId:
+          type: integer
+          format: int64
+          nullable: true
+        handoffStatus:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    AppointmentMutationResponse:
+      type: object
+      required: [appointment, caseStatus, partReadiness]
+      properties:
+        appointment:
+          $ref: '#/components/schemas/Appointment'
+        partReadiness:
+          $ref: '#/components/schemas/PartReadiness'
+        warning:
+          type: string
+          nullable: true
+          example: PART_NOT_READY
+        caseStatus:
+          $ref: '#/components/schemas/CaseStatus'
+        nextAction:
+          $ref: '#/components/schemas/NextAction'
+
+    TechnicianAvailability:
+      type: object
+      required: [technicianId, technicianName, available]
+      properties:
+        technicianId:
+          type: integer
+          format: int64
+        technicianName:
+          type: string
+        available:
+          type: boolean
+
+    AvailabilityResponse:
+      type: object
+      required: [scheduledAt, technicians]
+      properties:
+        scheduledAt:
+          type: string
+          format: date-time
+        technicians:
+          type: array
+          items:
+            $ref: '#/components/schemas/TechnicianAvailability'
+
+    ActivityCreateRequest:
+      type: object
+      required: [activityType, summary]
+      properties:
+        activityType:
+          type: string
+          enum: [CONTACT, MEMO]
+        direction:
+          type: string
+          nullable: true
+          description: Required by business validation for CONTACT when applicable; e.g. INBOUND or OUTBOUND.
+        channel:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        outcome:
+          type: string
+          nullable: true
+          description: Business-rule outcomes include VEHICLE_SOLD, CUSTOMER_MOVED, and WRONG_NUMBER.
+        followUp:
+          type: string
+          nullable: true
+        callbackDueAt:
+          type: string
+          format: date-time
+          nullable: true
+        completesCallbackActivityId:
+          type: integer
+          format: int64
+          nullable: true
+          description: References an open callback activity completed by this new CONTACT activity.
+
+    Activity:
+      type: object
+      required: [id, caseId, employeeId, activityType, summary, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        caseId:
+          type: integer
+          format: int64
+        employeeId:
+          type: integer
+          format: int64
+        employeeName:
+          type: string
+          nullable: true
+        activityType:
+          type: string
+          enum: [CONTACT, MEMO]
+        direction:
+          type: string
+          nullable: true
+        channel:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        outcome:
+          type: string
+          nullable: true
+        followUp:
+          type: string
+          nullable: true
+        callbackDueAt:
+          type: string
+          format: date-time
+          nullable: true
+        callbackCompletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completesCallbackActivityId:
+          type: integer
+          format: int64
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ActivityMutationResponse:
+      type: object
+      required: [activity, caseStatus, eligibility]
+      properties:
+        activity:
+          $ref: '#/components/schemas/Activity'
+        caseStatus:
+          $ref: '#/components/schemas/CaseStatus'
+        eligibility:
+          $ref: '#/components/schemas/Eligibility'
+        nextAction:
+          $ref: '#/components/schemas/NextAction'
+
+    SearchResult:
+      type: object
+      required: [caseId, customerName, vin, recallNo, caseStatus]
+      properties:
+        caseId:
+          type: integer
+          format: int64
+        dealershipId:
+          type: integer
+          format: int64
+          nullable: true
+        dealershipName:
+          type: string
+          nullable: true
+        customerNo:
+          type: string
+        customerName:
+          type: string
+        vin:
+          type: string
+        recallNo:
+          type: string
+        matchedPartNo:
+          type: string
+          nullable: true
+        severity:
+          $ref: '#/components/schemas/RecallSeverity'
+        operationalPriority:
+          $ref: '#/components/schemas/OperationalPriority'
+        caseStatus:
+          $ref: '#/components/schemas/CaseStatus'
+        supplyAlignment:
+          $ref: '#/components/schemas/SupplyAlignment'
+        nextAction:
+          $ref: '#/components/schemas/NextAction'
+
+    SearchResponse:
+      type: object
+      required: [query, results]
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+
+    DashboardResponse:
+      type: object
+      required: [role, organization, summary, workQueue]
+      properties:
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        organization:
+          $ref: '#/components/schemas/OrganizationRef'
+        dealership:
+          allOf:
+            - $ref: '#/components/schemas/Dealership'
+          nullable: true
+        summary:
+          type: object
+          description: Role-specific dashboard counts such as active campaigns, open cases, callbacks, parts, or scheduled jobs.
+          additionalProperties:
+            type: integer
+        workQueue:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaseSummary'

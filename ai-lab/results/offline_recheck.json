@@ -1,0 +1,118 @@
+{
+  "scope": "stored development responses; not held-out accuracy",
+  "versions": {
+    "v1": {
+      "n": 3,
+      "json_valid": 0.0,
+      "schema_valid": 0.0,
+      "evidence_supported": 0.0,
+      "date_supported": 0.0
+    },
+    "v2": {
+      "n": 3,
+      "json_valid": 1.0,
+      "schema_valid": 0.0,
+      "evidence_supported": 0.0,
+      "date_supported": 0.0
+    },
+    "v3": {
+      "n": 3,
+      "json_valid": 1.0,
+      "schema_valid": 1.0,
+      "evidence_supported": 1.0,
+      "date_supported": 1.0
+    }
+  },
+  "rows": [
+    {
+      "case_id": "A",
+      "prompt_version": "v1",
+      "response_sha256": "ed38abd1c35d8b9ad313e883f35cd2a57b40138e7497b40cd35153836582852f",
+      "json_valid": false,
+      "schema_valid": false,
+      "evidence_supported": false,
+      "date_supported": false,
+      "human_review": null
+    },
+    {
+      "case_id": "A",
+      "prompt_version": "v2",
+      "response_sha256": "19ed52d729449c242d0df5ecf97ebff713294cb21c5b75523c529d8748e2b9c3",
+      "json_valid": true,
+      "schema_valid": false,
+      "evidence_supported": false,
+      "date_supported": false,
+      "human_review": null
+    },
+    {
+      "case_id": "A",
+      "prompt_version": "v3",
+      "response_sha256": "a5f5b165195387413d90e79bd8f52a72ac285850bfaf62e8c609de51fb8efa74",
+      "json_valid": true,
+      "schema_valid": true,
+      "evidence_supported": true,
+      "date_supported": true,
+      "human_review": null
+    },
+    {
+      "case_id": "B",
+      "prompt_version": "v1",
+      "response_sha256": "d0e5221e8d0b78f517e1d43a525dde858b9c347dd0501fd7b6c3024a2a75e701",
+      "json_valid": false,
+      "schema_valid": false,
+      "evidence_supported": false,
+      "date_supported": false,
+      "human_review": null
+    },
+    {
+      "case_id": "B",
+      "prompt_version": "v2",
+      "response_sha256": "c9df96cb401c39d1db6b20098494ef53029f029f56a5032612490509abf33683",
+      "json_valid": true,
+      "schema_valid": false,
+      "evidence_supported": false,
+      "date_supported": false,
+      "human_review": null
+    },
+    {
+      "case_id": "B",
+      "prompt_version": "v3",
+      "response_sha256": "1f18d0ebd516972cbadc49294ef5e020acf9b0e002b86a980e6261aae9d3091e",
+      "json_valid": true,
+      "schema_valid": true,
+      "evidence_supported": true,
+      "date_supported": true,
+      "human_review": null
+    },
+    {
+      "case_id": "C",
+      "prompt_version": "v1",
+      "response_sha256": "dcc85f7cb5dec86df863f2caccabc7359f61b5a5b1dc356c43fbd4fd0c870dbf",
+      "json_valid": false,
+      "schema_valid": false,
+      "evidence_supported": false,
+      "date_supported": false,
+      "human_review": null
+    },
+    {
+      "case_id": "C",
+      "prompt_version": "v2",
+      "response_sha256": "c9df96cb401c39d1db6b20098494ef53029f029f56a5032612490509abf33683",
+      "json_valid": true,
+      "schema_valid": false,
+      "evidence_supported": false,
+      "date_supported": false,
+      "human_review": null
+    },
+    {
+      "case_id": "C",
+      "prompt_version": "v3",
+      "response_sha256": "3f6ef38ded2bf4143988536cbaa6aba737ee5c8ca82346bf5bc134d049d90fad",
+      "json_valid": true,
+      "schema_valid": true,
+      "evidence_supported": true,
+      "date_supported": true,
+      "human_review": null
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+case_id,prompt_version,missing_field_correct,invented_value,scope_guardrail_met,terminology_preserved,false_positive_question,json_valid,notes
+NBQ1,v1,True,False,False,True,False,True,"Correct missing field, but suggested an unsupported shipment/supplier source."
+NBQ2,v1,True,False,True,False,False,True,"Correct missing field, but rephrased CUSTOMER_REQUESTED_DATE as a delivery date."
+NBQ3,v1,True,False,True,True,False,True,Correctly returned no verification question.
+NBQ1,v2,True,False,True,True,False,True,Explained LATEST_PART_ETA without introducing an unsupported lookup source.
+NBQ2,v2,True,False,True,True,False,True,Preserved the recall-service meaning of CUSTOMER_REQUESTED_DATE.
+NBQ3,v2,True,False,True,True,False,True,Correctly returned no verification question.

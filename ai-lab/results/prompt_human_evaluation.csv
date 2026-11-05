@@ -1,0 +1,10 @@
+case_id,prompt_version,commitment_correct,date_correct,evidence_supported,hallucination,unauthorized_action,json_valid,notes
+A,v1,True,True,False,False,False,False,"Semantically correct, but free-text output and no explicit evidence."
+A,v2,True,True,False,False,False,True,"Correct structured extraction, but prompt does not require evidence."
+A,v3,True,True,True,False,False,True,"Correct commitment, date, evidence, and structured JSON."
+B,v1,True,True,False,False,False,False,"Commitment meaning captured, but output is unstructured."
+B,v2,False,False,False,False,False,True,False negative: customer-facing part arrival commitment missed.
+B,v3,True,True,True,False,False,True,"False negative corrected after adding context, constraints, and evidence."
+C,v1,False,False,False,False,False,False,False negative. Same interaction as Case B produced inconsistent judgment.
+C,v2,False,False,False,False,False,True,"JSON format improved, but customer-facing commitment still missed."
+C,v3,True,True,True,False,False,True,Correctly preserves commitment despite changed supply facts.

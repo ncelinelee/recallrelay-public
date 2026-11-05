@@ -1,0 +1,23 @@
+{
+  "A": {
+    "requested_date": "2026-09-03",
+    "part_status": "ARRIVED",
+    "eta": "2026-09-02",
+    "appointment": "2026-09-03",
+    "interaction": "Part has arrived. Customer confirmed Sep 3 appointment."
+  },
+  "B": {
+    "requested_date": "2026-09-03",
+    "part_status": "IN_TRANSIT",
+    "eta": "2026-09-02",
+    "appointment": "2026-09-03",
+    "interaction": "Customer was advised that the part should arrive before Sep 3."
+  },
+  "C": {
+    "requested_date": "2026-09-03",
+    "part_status": "IN_TRANSIT",
+    "eta": "2026-09-06",
+    "appointment": "2026-09-03",
+    "interaction": "Customer was advised that the part should arrive before Sep 3."
+  }
+}

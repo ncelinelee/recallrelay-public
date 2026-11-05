@@ -1,0 +1,82 @@
+{
+  "v1": {
+    "NBQ1": {
+      "information_missing": true,
+      "verify_first": "Verify the latest part ETA with the shipment or supplier source.",
+      "reason": "The part is IN_TRANSIT, but no ETA is recorded. The latest part ETA is needed to assess expected arrival against the customer requested date without estimating or altering any values.",
+      "missing_fields": [
+        "LATEST_PART_ETA"
+      ],
+      "evidence_facts": [
+        "Part status: IN_TRANSIT",
+        "ETA: None",
+        "Customer requested date: 2026-09-03"
+      ]
+    },
+    "NBQ2": {
+      "information_missing": true,
+      "verify_first": "Verify whether the customer has a requested delivery date and, if so, obtain that date.",
+      "reason": "The customer requested date is missing and is needed to compare the customer's requested timing with the current ETA.",
+      "missing_fields": [
+        "CUSTOMER_REQUESTED_DATE"
+      ],
+      "evidence_facts": [
+        "Part status is IN_TRANSIT.",
+        "ETA is 2026-09-02.",
+        "Customer requested date is None."
+      ]
+    },
+    "NBQ3": {
+      "information_missing": false,
+      "verify_first": null,
+      "reason": null,
+      "missing_fields": [],
+      "evidence_facts": [
+        "Part status is IN_TRANSIT.",
+        "ETA is 2026-09-02.",
+        "Customer requested date is 2026-09-03.",
+        "ETA is before the customer requested date.",
+        "Code-detected missing fields are empty."
+      ]
+    }
+  },
+  "v2": {
+    "NBQ1": {
+      "information_missing": true,
+      "verify_first": "What is the latest expected arrival date for the recall part?",
+      "reason": "LATEST_PART_ETA should be verified first because the part is IN_TRANSIT but no ETA is recorded. The latest expected arrival date is needed to assess timing against the customer's requested recall service date of 2026-09-03.",
+      "missing_fields": [
+        "LATEST_PART_ETA"
+      ],
+      "evidence_facts": [
+        "Part status: IN_TRANSIT",
+        "ETA: None",
+        "Customer requested date: 2026-09-03"
+      ]
+    },
+    "NBQ2": {
+      "information_missing": true,
+      "verify_first": "What date, if any, has the customer requested for recall service?",
+      "reason": "CUSTOMER_REQUESTED_DATE is needed to determine the customer's preferred recall service date in relation to the current part status and ETA.",
+      "missing_fields": [
+        "CUSTOMER_REQUESTED_DATE"
+      ],
+      "evidence_facts": [
+        "Part status: IN_TRANSIT",
+        "ETA: 2026-09-02",
+        "Customer requested date: None"
+      ]
+    },
+    "NBQ3": {
+      "information_missing": false,
+      "verify_first": null,
+      "reason": null,
+      "missing_fields": [],
+      "evidence_facts": [
+        "Part status: IN_TRANSIT",
+        "ETA: 2026-09-02",
+        "Customer requested date: 2026-09-03"
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+case_id,prompt_version,raw_response,json_valid,parse_error
+A,v1,Customer confirmed an appointment for September 3.,False,Expecting value: line 1 column 1 (char 0)
+A,v2,"{""exists"": true, ""type"": ""APPOINTMENT"", ""date_or_condition"": ""Sep 3""}",True,
+A,v3,"{
+  ""exists"": true,
+  ""commitment_type"": ""Appointment"",
+  ""date_or_condition"": ""Sep 3"",
+  ""evidence"": ""Customer confirmed Sep 3 appointment.""
+}",True,
+B,v1,The part should arrive before September 3.,False,Expecting value: line 1 column 1 (char 0)
+B,v2,"{""exists"": false, ""type"": null, ""date_or_condition"": null}",True,
+B,v3,"{
+  ""exists"": true,
+  ""commitment_type"": ""Part arrival"",
+  ""date_or_condition"": ""Before Sep 3"",
+  ""evidence"": ""the part should arrive before Sep 3""
+}",True,
+C,v1,No customer commitment was made.,False,Expecting value: line 1 column 1 (char 0)
+C,v2,"{""exists"": false, ""type"": null, ""date_or_condition"": null}",True,
+C,v3,"{
+  ""exists"": true,
+  ""commitment_type"": ""Part arrival"",
+  ""date_or_condition"": ""before Sep 3"",
+  ""evidence"": ""the part should arrive before Sep 3""
+}",True,

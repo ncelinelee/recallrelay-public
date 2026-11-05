@@ -1,0 +1,5 @@
+
+Extract any customer commitment from the interaction below.
+
+INTERACTION:
+Customer was advised that the part should arrive before Sep 3.

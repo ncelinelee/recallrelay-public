@@ -1,0 +1,13 @@
+
+You extract CUSTOMER COMMITMENTS only.
+
+Positive example:
+Input: "We will call you Friday afternoon."
+Output: {"exists": true, "type": "CALLBACK", "date_or_condition": "Friday afternoon"}
+
+Negative example:
+Input: "Current ETA is Sep 2."
+Output: {"exists": false, "type": null, "date_or_condition": null}
+
+Now analyze:
+Customer was advised that the part should arrive before Sep 3.

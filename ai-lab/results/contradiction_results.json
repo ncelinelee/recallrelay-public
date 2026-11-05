@@ -1,0 +1,33 @@
+{
+  "CC1": {
+    "contradiction": true,
+    "reason": "The later interaction states that the part is still in transit, while the earlier part record shows it as arrived.",
+    "source_a": "Part record: Status ARRIVED at 2026-09-05T10:00:00",
+    "source_b": "Interaction: \"The part is still in transit.\" at 2026-09-05T11:00:00",
+    "evidence": [
+      "Part record status is ARRIVED.",
+      "Interaction occurred after the part record.",
+      "The later interaction says the part is still in transit."
+    ]
+  },
+  "CC2": {
+    "contradiction": false,
+    "reason": null,
+    "source_a": "PART RECORD",
+    "source_b": "INTERACTION",
+    "evidence": [
+      "The interaction stated the part was still in transit on 2026-09-02T15:00:00.",
+      "The part record showed ARRIVED later, on 2026-09-05T10:00:00."
+    ]
+  },
+  "CC3": {
+    "contradiction": false,
+    "reason": null,
+    "source_a": "PART RECORD",
+    "source_b": "INTERACTION",
+    "evidence": [
+      "PART RECORD status is ARRIVED at 2026-09-05T10:00:00.",
+      "INTERACTION states \"The part has arrived.\" at 2026-09-05T11:00:00."
+    ]
+  }
+}

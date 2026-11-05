@@ -1,0 +1,38 @@
+[
+  {
+    "case_id": "CC1",
+    "part_record": {
+      "timestamp": "2026-09-05T10:00:00",
+      "part_status": "ARRIVED"
+    },
+    "interaction": {
+      "timestamp": "2026-09-05T11:00:00",
+      "text": "The part is still in transit."
+    },
+    "expected_contradiction": true
+  },
+  {
+    "case_id": "CC2",
+    "part_record": {
+      "timestamp": "2026-09-05T10:00:00",
+      "part_status": "ARRIVED"
+    },
+    "interaction": {
+      "timestamp": "2026-09-02T15:00:00",
+      "text": "The part is still in transit."
+    },
+    "expected_contradiction": false
+  },
+  {
+    "case_id": "CC3",
+    "part_record": {
+      "timestamp": "2026-09-05T10:00:00",
+      "part_status": "ARRIVED"
+    },
+    "interaction": {
+      "timestamp": "2026-09-05T11:00:00",
+      "text": "The part has arrived."
+    },
+    "expected_contradiction": false
+  }
+]

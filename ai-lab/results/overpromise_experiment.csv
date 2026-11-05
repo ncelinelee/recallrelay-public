@@ -1,0 +1,37 @@
+case_id,draft,expected,raw_response,json_valid,parse_error
+OP1,Your part will arrive on Sep 2.,WARNING,"{
+  ""risk"": ""HIGH"",
+  ""unsupported_phrase"": ""will arrive on Sep 2"",
+  ""reason"": ""Sep 2 is an estimated arrival date, and physical arrival has not been confirmed."",
+  ""safer_wording"": ""Your part is expected to arrive on Sep 2."",
+  ""evidence_facts"": [
+    ""Part status: IN_TRANSIT"",
+    ""ETA: 2026-09-02"",
+    ""Physical arrival confirmed: NO"",
+    ""Supply alignment: WATCH""
+  ]
+}",True,
+OP2,Your part is expected to arrive on Sep 2.,SAFE_OR_LOW,"{
+  ""risk"": ""NONE"",
+  ""unsupported_phrase"": null,
+  ""reason"": null,
+  ""safer_wording"": null,
+  ""evidence_facts"": [
+    ""Part status: IN_TRANSIT"",
+    ""ETA: 2026-09-02""
+  ]
+}",True,
+OP3,Your part has arrived.,SAFE,"{""risk"":""NONE"",""unsupported_phrase"":null,""reason"":null,""safer_wording"":null,""evidence_facts"":[""Part status: ARRIVED"",""Physical arrival confirmed: YES""]}",True,
+OP4,Your Sep 3 appointment is guaranteed.,WARNING,"{
+  ""risk"": ""HIGH"",
+  ""unsupported_phrase"": ""is guaranteed"",
+  ""reason"": ""The appointment cannot be guaranteed because the part is still in transit, physical arrival is not confirmed, and supply alignment is on watch."",
+  ""safer_wording"": ""Your Sep 3 appointment is scheduled."",
+  ""evidence_facts"": [
+    ""Part status: IN_TRANSIT"",
+    ""ETA: 2026-09-02"",
+    ""Physical arrival confirmed: NO"",
+    ""Appointment: 2026-09-03"",
+    ""Supply alignment: WATCH""
+  ]
+}",True,
